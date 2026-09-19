@@ -1,6 +1,6 @@
 # Consilium
 
-[![tests](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml/badge.svg)](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![tests](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml/badge.svg)](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml) [![release](https://img.shields.io/github/v/release/kavyrshin/Consilium)](https://github.com/kavyrshin/Consilium/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [English version](README.md)
 
@@ -38,6 +38,16 @@ brief.md ─┬─► обзор хоста (агент, с которым вы 
 **Хост** — агент, в котором вы запускаете скилл. Свой обзор он пишет сам, поэтому второй раз его не запускают. Если установлен только один CLI, консилиум всё равно работает, с меньшим составом, и решение прямо об этом скажет.
 
 ## Установка
+
+Стабильный релиз (рекомендуется):
+
+```bash
+git clone --branch v0.1.0 --depth 1 https://github.com/kavyrshin/Consilium.git
+cd Consilium
+./install.sh                # для каждого агента, у которого есть конфиг-папка (~/.claude, ~/.codex)
+```
+
+Последняя версия в разработке:
 
 ```bash
 git clone https://github.com/kavyrshin/Consilium.git

@@ -1,6 +1,6 @@
 # Consilium
 
-[![tests](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml/badge.svg)](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![tests](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml/badge.svg)](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml) [![release](https://img.shields.io/github/v/release/kavyrshin/Consilium)](https://github.com/kavyrshin/Consilium/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Русская версия](README.ru.md)
 
@@ -38,6 +38,16 @@ More: [write your own adapter](docs/adapters.md), it is a ~10 line file.
 The **host** is whichever agent you run the skill in. It writes its own review by hand, so it is never launched a second time. With only one CLI installed the consilium still runs, with a smaller panel, and the decision says so.
 
 ## Install
+
+Stable release (recommended):
+
+```bash
+git clone --branch v0.1.0 --depth 1 https://github.com/kavyrshin/Consilium.git
+cd Consilium
+./install.sh                # every agent whose config dir exists (~/.claude, ~/.codex)
+```
+
+Latest development version:
 
 ```bash
 git clone https://github.com/kavyrshin/Consilium.git
