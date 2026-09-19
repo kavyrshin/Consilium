@@ -1,0 +1,6 @@
+interface:
+  display_name: "Consilium"
+  short_description: "Multi-model review of a technical question, with arbiters and a human final say"
+  default_prompt: "Use $consilium to run a consilium on this question: "
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,9 @@
+.DS_Store
+*.bak
+# Run artefacts if you try the skill inside this repository.
+/consilium/.runners/
+/consilium/.logs/
+/consilium/*/.runners/
+/consilium/*/.logs/
+/consilium/*/.watch.log
+/consilium/*/.decision-candidate.*/
