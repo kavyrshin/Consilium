@@ -1,0 +1,7 @@
+# Adapters and lang files are sourced, not executed, so they have no shebang.
+shell=bash
+
+# SC2034 (variable appears unused): by design, values such as CM_PROMPT, CM_MODEL,
+# CM_USED_MODEL, REL_CASE or ADAPTER_STDOUT_FALLBACK are set in one file or callback and
+# read in another that shellcheck cannot follow (sourced adapters, prompt/check callbacks).
+disable=SC2034
