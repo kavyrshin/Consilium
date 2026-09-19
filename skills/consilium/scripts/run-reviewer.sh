@@ -8,6 +8,10 @@
 # these tools are unreliable. Leaves .runners/<adapter>.done = ok|fail so the watcher
 # does not wait out its timeout for a reviewer that already failed.
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -56,3 +60,5 @@ REASON="$(cm_failure_reason "$ADAPTER" "$LOG")"
 echo "consilium: $ADAPTER did not write a review${REASON:+: $REASON}. Log: $(cm_rel "$LOG")" >&2
 cm_mark_done "$CASE_DIR" "$ADAPTER" fail
 exit 1
+exit
+}

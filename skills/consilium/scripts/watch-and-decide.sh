@@ -11,6 +11,10 @@
 # endpoint or an exhausted subscription must not leave the user with no document.
 # The timeout stays as a backstop (a manual, hand-pasted reviewer signals nothing).
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -72,3 +76,5 @@ if cm_written "$HOST_REVIEW"; then
   exit 0
 fi
 log "host review never appeared - nothing to synthesize, giving up"
+exit
+}

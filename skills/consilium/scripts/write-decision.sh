@@ -25,6 +25,10 @@
 #
 # The result is always a DRAFT with an explicit banner: the human is the final arbiter.
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -72,22 +76,20 @@ cp -p "$LIVE" "$LIVE_BACKUP" 2>/dev/null || : > "$LIVE_BACKUP"
 trap 'rm -rf "$WORK_DIR"' EXIT
 mkdir -p "$CASE_DIR/.logs"
 
-# The panel is the first two names configured; report those that cannot even start.
-CONFIGURED="$(echo "$CM_ARBITERS" | tr -s ' ' '\n' | grep -v '^$' | head -2 | tr '\n' ' ' || true)"
+# The panel is the first two AVAILABLE names in CM_ARBITERS. Unavailable ones met before
+# both seats are filled are recorded, so the draft says who was supposed to take part.
 ARBITER_MISSING=""
 AVAILABLE=""
-for n in $CONFIGURED; do
+SEATS=0
+for n in $CM_ARBITERS; do
+  [ "$SEATS" -lt 2 ] || break
   if reason="$(cm_check "$n")"; then
     AVAILABLE="$AVAILABLE $n"
+    SEATS=$((SEATS + 1))
   else
     ARBITER_MISSING="${ARBITER_MISSING}${ARBITER_MISSING:+; }$(cm_label "$n"): unavailable (${reason:-unknown})"
   fi
 done
-# More than two configured: the next available ones step in when the first two are out.
-if [ -z "${AVAILABLE// /}" ]; then
-  # shellcheck disable=SC2086
-  AVAILABLE="$(cm_available $CM_ARBITERS 2>/dev/null | head -2 | tr '\n' ' ' || true)"
-fi
 # shellcheck disable=SC2086
 set -- $AVAILABLE
 A1="${1:-}"
@@ -255,3 +257,5 @@ fi
 echo "consilium: no arbiter produced a valid draft; decision.md was not synthesized. Logs: $REL_CASE/.logs/decision-*.log" >&2
 cm_notify "Consilium: decision synthesis failed" "$REL_CASE - no arbiter answered"
 exit 1
+exit
+}

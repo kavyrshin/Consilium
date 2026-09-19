@@ -10,6 +10,10 @@
 #            (reproduces an arbiter that deletes a file it was told not to touch)
 #   stdout   print the artifact to stdout instead of writing the file
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -44,3 +48,5 @@ case "$MODE" in
   delete)  rm -f "${CM_LIVE_FILE:-/nonexistent}" "$TARGET"; exit 1 ;;
   *)       echo "mock agent: unknown mode $MODE" >&2; exit 2 ;;
 esac
+exit
+}

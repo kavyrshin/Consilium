@@ -72,7 +72,7 @@ Right away, without waiting for the others, write `<case-dir>/<CM_HOST>-review.m
 
 ## Step 6 - Report
 
-Now (and only now) check how the others did: `<case-dir>/.logs/runner-*.log`, `<case-dir>/.watch.log`. Tell the user: the case path, who ran and how it ended, the "Verdict" section of your own review. Remind them that the watcher will draft `decision.md` (two arbiters) when the reviewers finish, and that it is a **draft** to be read and confirmed, not a final decision. If `decision.md` is already there, summarize agreement and disagreements briefly and quote the "Authorized code changes" list.
+Now (and only now) check how the others did: `<case-dir>/.logs/runner-*.log`, `<case-dir>/.watch.log`. Tell the user: the case path, who ran and how it ended, the "Verdict" section of your own review. Remind them that the watcher will draft `decision.md` (two arbiters) when the reviewers finish, and that it is a **draft** to be read and confirmed, not a final decision. Tell them they can follow the case live in the reader, started from the project root in their own terminal: `bash "$SKILL_DIR/scripts/reader.sh" --open` (http://localhost:4600, needs Node.js). Do not start it yourself unless asked: it runs until stopped. If `decision.md` is already there, summarize agreement and disagreements briefly and quote the "Authorized code changes" list.
 
 Stop here unless the user confirms the decision or explicitly said, in the original request, to implement right after the decision.
 
@@ -108,4 +108,4 @@ Steps 7.2-7.4 take minutes to tens of minutes. Run them in the background if you
 
 ## Other scripts
 
-`run-reviewer.sh <adapter> [case]` re-runs one reviewer; `write-decision.sh <case>` re-synthesizes the draft; `watch-and-decide.sh` is started for you. Adding a model or CLI: `docs/adapters.md` in the repository.
+`reader.sh [--port N] [--open] [--public]` serves the local reader (`--public` for a tunnel such as ngrok, password-protected; only when the user asks to share); `run-reviewer.sh <adapter> [case]` re-runs one reviewer; `write-decision.sh <case>` re-synthesizes the draft; `watch-and-decide.sh` is started for you. Adding a model or CLI: `docs/adapters.md` in the repository.

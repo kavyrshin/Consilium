@@ -59,6 +59,11 @@ CM_ARBITERS="stubgone stubb" run a-gone
 assert_contains "$CASE/decision.md" "synthesized automatically by StubB (b-1)"
 assert_contains "$CASE/decision.md" "StubGone: unavailable (CLI not installed)"
 
+# 4b. Seats go to the first two AVAILABLE arbiters, not the first two names.
+CM_ARBITERS="stubgone stuba stubb" run skip-to-available
+assert_contains "$CASE/decision.md" "synthesized jointly by StubA (a-1) + StubB (b-1)"
+assert_contains "$CASE/decision.md" "StubGone: unavailable"
+
 # 5. A missing reviewer is listed in the panel note, from disk facts.
 printf 'ghost\n' > "$CASE/.runners/expected"
 CM_ARBITERS="stuba" run missing-reviewer

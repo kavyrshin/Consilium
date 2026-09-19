@@ -13,6 +13,10 @@
 # Skip someone for one run: CM_SKIP_REVIEWERS="codex deepseek".
 # Choose the panel:        CM_REVIEWERS="codex opencode".
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -62,3 +66,5 @@ if [ -z "${CM_SKIP_WATCHER:-}" ]; then
   disown 2>/dev/null || true
   echo "Watcher started (pid $!): it drafts decision.md once the reviews are in (log: $REL_CASE/.watch.log)."
 fi
+exit
+}

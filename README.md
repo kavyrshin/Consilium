@@ -1,5 +1,7 @@
 # Consilium
 
+[![tests](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml/badge.svg)](https://github.com/kavyrshin/Consilium/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 [Русская версия](README.ru.md)
 
 A skill for **Claude Code** and **Codex** that runs a *consilium*: several independent models review the same technical question, two arbiters merge the reviews into a **draft** decision, and only after you confirm it does an implementer make the changes and verifiers check them. The human is always the final arbiter; no model decides.
@@ -20,7 +22,7 @@ One model reviewing its own idea tends to agree with itself. Independent reviews
 
 ## Requirements
 
-- `bash` 3.2+ (stock macOS works), `git`, `python3`
+- `bash` 3.2+ (stock macOS works), `git`, `python3`; Node.js 18+ only for the optional reader
 - At least one agent CLI on your `PATH`. Each one you have becomes a usable reviewer, arbiter, verifier or implementer:
 
 | Adapter | CLI | Notes |
@@ -71,14 +73,14 @@ See [`examples/`](examples/) for what a case folder looks like.
 
 ## Configure
 
-Plain `KEY=VALUE`, in `<project>/.consilium.conf` or `~/.config/consilium/config`. Environment variables win over the project file, which wins over the user file. Files are **parsed, never executed**, so a config committed to a cloned repo cannot run code. Start from [`consilium.example.conf`](skills/consilium/consilium.example.conf).
+Plain `KEY=VALUE`, in `<project>/.consilium.conf` or `~/.config/consilium/config`. Environment variables win over the project file, which wins over the user file. Files are **parsed, never executed**. The project file is treated as untrusted, because it comes with whatever repository you cloned: it may only set the panel, language, models, timeouts and a relative case folder inside the project. Settings that load code or run commands (`CM_ADAPTERS_DIR`, `CM_NOTIFY_CMD`) and paths outside the project are accepted only from the environment or your user config; the skill prints what it ignored. Start from [`consilium.example.conf`](skills/consilium/consilium.example.conf).
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `CM_LANG` | `en` | language of documents: `en` or `ru` (see below to add more) |
 | `CM_HOST` | `claude` | the agent running the skill (`claude` / `codex`) |
 | `CM_REVIEWERS` | `claude codex opencode deepseek` | external reviewer adapters; unavailable ones are skipped and reported |
-| `CM_ARBITERS` | `codex claude` | first two available synthesize the draft |
+| `CM_ARBITERS` | `codex claude` | the first two available ones in the list synthesize the draft |
 | `CM_VERIFIERS` | `codex claude` | verify the implementation, in parallel |
 | `CM_IMPLEMENTERS` | `claude codex opencode` | first available implements |
 | `CM_OUT_DIR` | `consilium` | case folder, relative to the project root |
@@ -89,12 +91,36 @@ Plain `KEY=VALUE`, in `<project>/.consilium.conf` or `~/.config/consilium/config
 Preview who would run and who would be skipped, without starting anything:
 
 ```bash
-bash ~/.claude/skills/consilium/scripts/run-reviewers.sh --plan
+bash ~/.claude/skills/consilium/scripts/run-reviewers.sh --plan   # installed for Claude Code
+bash ~/.codex/skills/consilium/scripts/run-reviewers.sh --plan    # installed for Codex
 ```
 
 ### Languages
 
 English is the default, Russian is bundled (`CM_LANG=ru`). To add one, copy `skills/consilium/lang/en.sh` and `skills/consilium/templates/en/` to your code, translate the values, set `CM_LANG=<code>`. Section headings are part of the contract (the decision validator matches them exactly), so change the wording, not the mechanism.
+
+## Reader
+
+A local web page for reading cases: every case in the sidebar, documents in process order (brief, reviews, decision, implementation), updating live while reviewers and arbiters write. Needs Node.js 18+.
+
+```bash
+bash ~/.claude/skills/consilium/scripts/reader.sh --open     # http://localhost:4600
+```
+
+Run it from the project root (`~/.codex/...` if you installed for Codex). `--port N` changes the port. It listens on `127.0.0.1` only, refuses foreign `Host` headers, serves nothing but the case markdown, and renders documents sanitized under a strict Content-Security-Policy: they are written by models that may have read hostile content.
+
+### Sharing through ngrok
+
+To show a case to someone outside your machine, run the reader in public mode and put a tunnel in front of it:
+
+```bash
+bash ~/.claude/skills/consilium/scripts/reader.sh --public   # prints a user and a one-time password
+ngrok http 4600                                              # in a second terminal
+```
+
+Send the `https://….ngrok-free.app` URL and the password separately. Public mode requires the password on every request (set your own with `CM_READER_PASSWORD`, 12+ characters) and hides your local paths.
+
+**Think before you share:** anyone with the URL and the password can read every case in the folder, and cases quote your code. Stop both processes (Ctrl+C) when you are done. For stronger protection, ngrok can also require a Google or GitHub login in front of the tunnel via a [traffic policy](https://ngrok.com/docs/traffic-policy/).
 
 ## Data and privacy
 
@@ -117,6 +143,7 @@ skills/consilium/
   scripts/                 init-case, run-reviewers, run-reviewer, watch-and-decide,
                            write-decision, implement, verify, lib.sh, mock-agent
   scripts/adapters/        one file per agent CLI
+  reader/                  local web reader (reader.sh starts it)
   lang/  templates/        wording per language
   consilium.example.conf
 install.sh   tests/   docs/   examples/

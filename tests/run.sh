@@ -9,6 +9,10 @@ for f in ../skills/consilium/scripts/*.sh ../skills/consilium/scripts/adapters/*
   bash -n "$f" || { echo "syntax error in $f" >&2; STATUS=1; }
 done
 
+if command -v node >/dev/null 2>&1; then
+  node --check ../skills/consilium/reader/reader.cjs || { echo "syntax error in reader.cjs" >&2; STATUS=1; }
+fi
+
 if command -v shellcheck >/dev/null 2>&1; then
   echo "== shellcheck"
   shellcheck -x -S warning ../skills/consilium/scripts/*.sh ../skills/consilium/scripts/adapters/*.sh ../install.sh || STATUS=1

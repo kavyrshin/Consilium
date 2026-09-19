@@ -17,6 +17,10 @@
 # from the project root (both are visible); otherwise the case documents are copied
 # into <workdir>/.consilium-context/ and the agent runs from the working tree.
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -70,6 +74,10 @@ report_ok() { [ -s "$REPORT_PATH/$REPORT" ]; }
 # A report left by an earlier run must not be mistaken for the result of this one.
 rm -f "$REPORT_PATH/$REPORT" "$CASE_DIR/$REPORT"
 
+# Remember who implemented, so verify.sh can keep them from grading their own work.
+mkdir -p "$CASE_DIR/.runners"
+printf '%s\n' "$ADAPTER" > "$CASE_DIR/.runners/implementer"
+
 LOG="$CASE_DIR/.logs/implement-$PASS.log"
 echo "Implementer: $(cm_label "$ADAPTER") ($(cm_first_model "$ADAPTER")), pass $PASS, tree $WORKDIR (branch $BRANCH) ..."
 # Only the first model of a chain: a half-finished run may have edited files.
@@ -96,3 +104,5 @@ fi
 } > "$CASE_DIR/$REPORT"
 echo "consilium: implementer wrote no report (exit $STATUS); saved the log tail as $REPORT" >&2
 exit 1
+exit
+}

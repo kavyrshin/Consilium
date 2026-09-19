@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
     --symlink)   SYMLINK=1 ;;
     --force)     FORCE=1 ;;
     --uninstall) UNINSTALL=1 ;;
-    -h|--help)   sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)   sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
   shift
@@ -69,6 +69,7 @@ echo "Requirements check:"
 for tool in bash git python3; do
   if command -v "$tool" >/dev/null 2>&1; then echo "  ok       $tool"; else echo "  MISSING  $tool (required)"; fi
 done
+if command -v node >/dev/null 2>&1; then echo "  ok       node (for the reader)"; else echo "  -        node (optional, only for the reader)"; fi
 echo "Agent CLIs found (each becomes an available reviewer/arbiter/verifier):"
 for tool in claude codex opencode dsh; do
   if command -v "$tool" >/dev/null 2>&1; then echo "  found    $tool"; else echo "  -        $tool"; fi

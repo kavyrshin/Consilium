@@ -24,6 +24,15 @@ assert_contains "$P/verify.log" "mock: accept"
 (cd "$P" && "$BASH_BIN" "$S/implement.sh" "$CASE" "$P" fix) > "$P/fix.log" 2>&1 || fail "fix pass failed"
 assert_file "$CASE/fix-report.md"
 
+# The implementer does not grade its own work when another verifier exists.
+STUBS="$(mktemp -d)"
+printf 'adapter_label() { echo Other; }\nadapter_models() { echo o-1; }\nadapter_command() { CM_CMD=(bash "$CM_SKILL_DIR/scripts/mock-agent.sh" success); }\n' > "$STUBS/other.sh"
+rm -f "$CASE"/*-impl-review.md
+(cd "$P" && CM_ADAPTERS_DIR="$STUBS" CM_VERIFIERS="mock other" "$BASH_BIN" "$S/verify.sh" "$CASE" "$P") > "$P/verify2.log" 2>&1 || fail "verify with two verifiers failed"
+assert_contains "$P/verify2.log" "Skipping mock as a verifier"
+assert_file "$CASE/other-impl-review.md"
+[ -e "$CASE/mock-impl-review.md" ] && fail "the implementer verified its own work"
+
 # Working tree outside the project: documents are copied in, the report comes back.
 OUT="$(mktemp -d)"
 ( cd "$OUT" && git init -q . )

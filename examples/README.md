@@ -8,6 +8,13 @@ Try the machinery yourself without any model:
 
 ```bash
 mkdir demo && cd demo && git init -q
-export CM_HOST=me CM_REVIEWERS=mock CM_ARBITERS=mock
+export CM_HOST=me CM_REVIEWERS=mock CM_ARBITERS=mock CM_DISABLE_NOTIFICATIONS=1
 bash ../skills/consilium/scripts/init-case.sh cache-strategy "Cache strategy"
+
+# What the host agent would do: fill in the brief and write its own review.
+sed -i.bak 's/<!-- TODO[^>]*-->/demo text/' consilium/*/brief.md
+printf '# Me review (me): demo\n\n## Verdict\nok\n' > consilium/*/me-review.md
+
+bash ../skills/consilium/scripts/run-reviewers.sh   # starts the mock reviewer and the watcher
+sleep 15 && cat consilium/*/decision.md             # the draft decision
 ```

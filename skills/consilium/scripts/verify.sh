@@ -8,8 +8,13 @@
 #
 # Waits for all verifiers (each has its own timeout) and succeeds if at least one wrote
 # its review: one failed verifier must not block the fix pass.
-# Skip someone: CM_SKIP_VERIFIERS="codex". Prefer verifiers other than the implementer.
+# Skip someone: CM_SKIP_VERIFIERS="codex". The implementer (recorded by implement.sh) is
+# left out automatically when another verifier is available.
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -25,6 +30,18 @@ for n in $CM_VERIFIERS; do
 done
 # shellcheck disable=SC2086
 VERIFIERS="$(cm_available $WANTED 2>/dev/null | tr '\n' ' ' || true)"
+# The implementer does not verify its own work when anyone else can.
+IMPLEMENTER="$(cat "$CASE_DIR/.runners/implementer" 2>/dev/null || true)"
+if [ -n "$IMPLEMENTER" ]; then
+  OTHERS=""
+  for n in $VERIFIERS; do [ "$n" = "$IMPLEMENTER" ] || OTHERS="$OTHERS $n"; done
+  if [ -n "${OTHERS// /}" ]; then
+    case " $VERIFIERS " in *" $IMPLEMENTER "*) echo "Skipping $IMPLEMENTER as a verifier: it implemented this change." ;; esac
+    VERIFIERS="$OTHERS"
+  else
+    echo "Note: $IMPLEMENTER implemented this change and is also the only available verifier." >&2
+  fi
+fi
 [ -n "${VERIFIERS// /}" ] || { echo "consilium: no verifier available (CM_VERIFIERS='$CM_VERIFIERS')" >&2; exit 1; }
 
 # shellcheck disable=SC2059
@@ -64,3 +81,5 @@ for pid in "${PIDS[@]}"; do
   fi
 done
 [ "$OK" -gt 0 ]
+exit
+}

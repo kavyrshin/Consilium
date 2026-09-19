@@ -15,6 +15,10 @@
 # The date comes from the system clock (CM_DATE overrides it, for tests): a model's
 # idea of "today" is often stale.
 
+# The whole script is one block, so bash parses it completely before running anything:
+# updating the skill (git pull, a --symlink install) during a long run cannot make
+# bash resume in the middle of a changed line.
+{
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
@@ -92,3 +96,5 @@ printf '{\n  "tasks": []\n}\n' > "$CASE_DIR/tasks.json"
 
 echo "consilium: created $(cm_rel "$CASE_DIR")" >&2
 echo "$CASE_DIR"
+exit
+}

@@ -5,15 +5,63 @@
 #
 # Settings precedence (highest first): environment > <project>/.consilium.conf >
 # ~/.config/consilium/config > built-in defaults. Config files are parsed as plain
-# KEY=VALUE lines, never sourced: a config file that ships inside a cloned repo must
-# not be able to run code.
+# KEY=VALUE lines, never sourced.
+#
+# The project file is UNTRUSTED: it arrives with whatever repository was cloned. It may
+# only set an allowlist of keys, each with a validated value (cm_project_key_ok), so it
+# cannot point the skill at code to load (CM_ADAPTERS_DIR), a command to run
+# (CM_NOTIFY_CMD) or a folder outside the project. Everything else is honoured only from
+# the environment, CM_CONFIG or the user's own config file.
 
 CM_SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # ---------------------------------------------------------------- configuration
 
+# Allowlist for the untrusted project file: key plus a conservative value check.
+cm_project_key_ok() {
+  local key="$1" val="$2" word
+  case "$key" in
+    CM_LANG|CM_HOST)
+      case "$val" in ''|*[!a-z0-9_-]*) return 1 ;; esac ;;
+    CM_REVIEWERS|CM_ARBITERS|CM_VERIFIERS|CM_IMPLEMENTERS|CM_SKIP_REVIEWERS|CM_SKIP_VERIFIERS)
+      case "$val" in *[!a-z0-9_\ -]*) return 1 ;; esac ;;
+    CM_OUT_DIR)
+      case "$val" in ''|/*|*[!A-Za-z0-9._/-]*) return 1 ;; esac
+      case "/$val/" in */../*|*/./*) return 1 ;; esac ;;
+    CM_REVIEW_TIMEOUT|CM_DECISION_TIMEOUT|CM_VERIFY_TIMEOUT|CM_IMPLEMENT_TIMEOUT)
+      case "$val" in ''|*[!0-9]*) return 1 ;; esac ;;
+    CM_CODEX_MODEL|CM_CLAUDE_MODEL|CM_CLAUDE_EFFORT|CM_OPENCODE_MODEL|CM_OPENCODE_MODELS|CM_DEEPSEEK_MODEL)
+      case "$val" in *[!A-Za-z0-9._/:~@\ -]*) return 1 ;; esac
+      # A value that starts with "-" could be taken for a CLI option.
+      for word in $val; do case "$word" in -*) return 1 ;; esac; done ;;
+    CM_DISABLE_NOTIFICATIONS)
+      case "$val" in 0|1) ;; *) return 1 ;; esac ;;
+    *) return 1 ;;
+  esac
+}
+
+# The lexical CM_OUT_DIR check above rejects explicit traversal. Resolve existing
+# symlinks as well, so a relative path supplied by an untrusted repository cannot
+# leave the physical project root. Nonexistent trailing components are handled by
+# realpath and may be created later by init-case.sh.
+cm_project_out_dir_ok() {
+  python3 - "$CM_PROJECT" "$1" <<'PYEOF'
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+candidate = os.path.realpath(os.path.join(root, sys.argv[2]))
+try:
+    inside = os.path.commonpath((root, candidate)) == root
+except ValueError:
+    inside = False
+sys.exit(0 if inside else 1)
+PYEOF
+}
+
+# cm_read_conf <file> [untrusted]
 cm_read_conf() {
-  local file="$1" line key val
+  local file="$1" untrusted="${2:-}" line key val
   [ -f "$file" ] || return 0
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line#"${line%%[![:space:]]*}"}"
@@ -26,6 +74,14 @@ cm_read_conf() {
       \"*\") val="${val#\"}"; val="${val%\"}" ;;
       \'*\') val="${val#\'}"; val="${val%\'}" ;;
     esac
+    if [ -n "$untrusted" ] && ! cm_project_key_ok "$key" "$val"; then
+      echo "consilium: ignoring $key from $file (not allowed in a project config, or invalid value)" >&2
+      continue
+    fi
+    if [ -n "$untrusted" ] && [ "$key" = CM_OUT_DIR ] && ! cm_project_out_dir_ok "$val"; then
+      echo "consilium: ignoring $key from $file (path resolves outside the project)" >&2
+      continue
+    fi
     # Anything already set (environment or a higher-priority file) wins.
     if [ -z "${!key+x}" ]; then export "$key=$val"; fi
   done < "$file"
@@ -37,7 +93,7 @@ CM_PROJECT="${CM_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd
 # treat a working tree inside the project as being outside it.
 CM_PROJECT="$(cd "$CM_PROJECT" && pwd -P)"
 [ -n "${CM_CONFIG:-}" ] && cm_read_conf "$CM_CONFIG"
-cm_read_conf "$CM_PROJECT/.consilium.conf"
+cm_read_conf "$CM_PROJECT/.consilium.conf" untrusted
 cm_read_conf "${XDG_CONFIG_HOME:-$HOME/.config}/consilium/config"
 
 # Where cases live, relative to the project root (an absolute path also works, but
@@ -63,6 +119,8 @@ case "$CM_OUT_DIR" in
   *)  CONSILIUM="$CM_PROJECT/${CM_OUT_DIR%/}" ;;
 esac
 
+# The host name becomes part of a file name (<host>-review.md).
+case "$CM_HOST" in ''|*[!a-z0-9_-]*) echo "consilium: invalid CM_HOST='$CM_HOST', using claude" >&2; CM_HOST=claude ;; esac
 case "$CM_LANG" in *[!a-z-]*|'') CM_LANG=en ;; esac
 if [ -f "$CM_SKILL_DIR/lang/$CM_LANG.sh" ]; then
   # shellcheck source=/dev/null
@@ -177,8 +235,11 @@ cm_invoke() {
         sleep "${CM_RETRY_DELAY:-20}"
       fi
       CM_PROMPT=""
-      "$prompt_fn" "$label" "$model"
+      # Documents name the model that wrote them. "default" means the CLI picked it from
+      # its own settings, which we cannot see, so say exactly that.
       CM_USED_MODEL="$model"
+      [ "$model" = default ] && CM_USED_MODEL="CLI default model"
+      "$prompt_fn" "$label" "$CM_USED_MODEL"
       CM_LAST_STATUS=0
       echo "=== $(date '+%F %T') $adapter model=$model attempt=$attempt/$attempts" >> "$log"
       (
